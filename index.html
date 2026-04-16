@@ -1,13 +1,170 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的旅遊部落格</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-slate-50">
+
+    <div id="app">
+        <div class="min-h-screen p-4 md:p-8 font-sans text-slate-900">
+            <div v-if="currentMode === 'list'" class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
+                <header class="bg-slate-900 p-6 text-white flex justify-between items-center">
+                    <h1 class="text-2xl font-bold tracking-tight">旅遊部落格</h1>
+                    <button @click="goToForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow-sm">
+                        + 新增貼文
+                    </button>
+                </header>
+                <div class="p-6">
+                    <div class="mb-6">
+                        <input v-model="searchQuery" type="text" placeholder="搜尋標題..." class="w-full border p-2 rounded-lg" @input="currentPage = 1" />
+                    </div>
+                    <table class="w-full text-left border rounded-lg">
+                        <thead>
+                            <tr class="bg-slate-50 border-b">
+                                <th class="p-4">編號</th>
+                                <th class="p-4">文章標題 (點擊閱讀)</th>
+                                <th class="p-4">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(post, index) in paginatedPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50 cursor-pointer border-b">
+                                <td class="p-4">#{{ filteredPosts.length - ((currentPage - 1) * pageSize + index)}}</td>
+                                <td class="p-4 font-bold text-blue-600 underline">{{ post.title }}</td>
+                                <td class="p-4" @click.stop>
+                                    <button @click="goToForm(post)" class="text-slate-500 mr-2">編輯</button>
+                                    <button @click="deletePost(post.id)" class="text-red-400">刪除</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span>共 {{ filteredPosts.length }} 筆</span>
+                        <div class="flex gap-1">
+                            <button @click="currentPage--" :disabled="currentPage === 1" class="px-3 border rounded">上一頁</button>
+                            <button @click="currentPage++" :disabled="currentPage === totalPages" class="px-3 border rounded">下一頁</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-else-if="currentMode === 'detail'" class="max-w-4xl mx-auto">
+                <button @click="currentMode = 'list'" class="mb-4 text-blue-600">← 返回文章列表</button>
+                <article class="bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+                    <header class="bg-slate-900 p-8 text-white">
+                        <h1 class="text-3xl font-bold mb-4">{{ currentPost.title }}</h1>
+                        <span class="text-slate-400 font-mono text-sm">文章編號：#{{ currentPost.id }}</span>
+                    </header>
+                    <div class="p-8 md:p-12">
+                        <p class="text-slate-700 leading-relaxed text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
+                        <div class="mt-12 flex justify-end gap-4 border-t pt-6">
+                            <button @click="goToForm(currentPost)" class="px-6 py-2 border rounded-lg hover:bg-slate-50">重新編輯</button>
+                            <button @click="currentMode = 'list'" class="px-6 py-2 bg-slate-900 text-white rounded-lg">返回首頁</button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <div v-else-if="currentMode === 'form'" class="max-w-3xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border">
+                <div class="p-6 border-b bg-slate-900 text-white flex justify-between items-center">
+                    <h2 class="text-xl font-bold">{{ isEditing ? '📝 編輯文章' : '✨ 撰寫新文章' }}</h2>
+                    <button @click="currentMode = 'list'" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div>
+                        <label class="block font-bold mb-2">文章標題</label>
+                        <input v-model="currentPost.title" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2">文章內容</label>
+                        <textarea v-model="currentPost.body" rows="12" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-4 pt-4">
+                        <button @click="currentMode = 'list'" class="px-6 py-2 text-slate-500">取消返回</button>
+                        <button @click="savePost" class="px-10 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg">發佈文章</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 核心修改點：從 Vue 全域變數獲取功能
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const DB_KEY = 'VUE_APP_POSTS';
+                const posts = ref([
+                    { id: 1, title: "日本東京", body: "東京神社分享" },
+                    { id: 2, title: "韓國釜山", body: "韓國釜山5日遊" },
+                    { id: 3, title: "美國加州", body: "加州美食、住宿、景點"},
+                    { id: 4, title: "日本沖繩", body: "沖繩5天4夜行程" },
+                    { id: 5, title: "日本北海道", body: "日本北海道景點分享" }
+                ]);
+
+                const currentMode = ref('list');
+                const searchQuery = ref('');
+                const currentPage = ref(1);
+                const pageSize = 5;
+                const isEditing = ref(false);
+                const currentPost = ref({ id: null, title: '', body: '' });
+
+                // --- 所有你寫的計算屬性與方法 ---
+                const goToDetail = (post) => { currentPost.value = { ...post }; currentMode.value = 'detail'; };
+                const goToForm = (post = null) => {
+                    if (post) { isEditing.value = true; currentPost.value = { ...post }; } 
+                    else { isEditing.value = false; currentPost.value = { id: null, title: '', body: '' }; }
+                    currentMode.value = 'form';
+                };
+                const savePost = () => {
+                    if (!currentPost.value.title.trim() || !currentPost.value.body.trim()) { alert('請填寫完整內容'); return; }
+                    if (isEditing.value) {
+                        const idx = posts.value.findIndex(p => p.id === currentPost.value.id);
+                        posts.value[idx] = { ...currentPost.value };
+                    } else {
+                        const newId = posts.value.length > 0 ? Math.max(...posts.value.map(p => p.id)) + 1 : 1;
+                        posts.value.unshift({ ...currentPost.value, id: newId });
+                        currentPage.value = 1;
+                    }
+                    currentMode.value = 'list';
+                };
+                const deletePost = (id) => {
+                    if (confirm('確定要刪除這篇文章嗎？')) {
+                        posts.value = posts.value.filter(p => p.id !== id);
+                    }
+                };
+
+                const filteredPosts = computed(() => {
+                    let result = [...posts.value];
+                    if (searchQuery.value) {
+                        const query = searchQuery.value.toLowerCase();
+                        result = result.filter(p => p.title.toLowerCase().includes(query) || p.body.toLowerCase().includes(query));
+                    }
+                    return result.sort((a, b) => b.id - a.id);
+                });
+                const totalPages = computed(() => Math.ceil(filteredPosts.value.length / pageSize) || 1);
+                const paginatedPosts = computed(() => {
+                    const start = (currentPage.value - 1) * pageSize;
+                    return filteredPosts.value.slice(start, start + pageSize);
+                });
+
+                onMounted(() => {
+                    const saved = localStorage.getItem(DB_KEY);
+                    if (saved) posts.value = JSON.parse(saved);
+                });
+                watch(posts, (newVal) => localStorage.setItem(DB_KEY, JSON.stringify(newVal)), { deep: true });
+
+                // 核心修改點：必須回傳 (return) 給畫面使用
+                return {
+                    posts, currentMode, searchQuery, currentPage, pageSize, isEditing, currentPost,
+                    goToDetail, goToForm, savePost, deletePost, filteredPosts, totalPages, paginatedPosts
+                };
+            }
+        }).mount('#app'); // 核心修改點：指定掛載位置
+    </script>
+</body>
 </html>
