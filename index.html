@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的旅遊部落格</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-slate-50">
+
+    <div id="app">
+        <div class="min-h-screen p-4 md:p-8 font-sans text-slate-900">
+            
+            <div v-if="currentMode === 'list'" class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
+                <header class="bg-slate-900 p-6 text-white flex justify-between items-center">
+                    <h1 class="text-2xl font-bold tracking-tight">旅遊部落格</h1>
+                    <button @click="goToForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow-sm transition transform active:scale-95">
+                        + 新增貼文
+                    </button>
+                </header>
+
+                <div class="p-6">
+                    <div class="mb-6">
+                        <div class="relative w-full md:w-96">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">🔍</span>
+                            <input v-model="searchQuery" type="text" placeholder="搜尋標題..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" @input="currentPage = 1" />
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border border-slate-100 rounded-lg">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm uppercase">
+                                    <th class="p-4 font-semibold">編號</th>
+                                    <th class="p-4 font-semibold">文章標題</th>
+                                    <th class="p-4 font-semibold">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr v-for="(post, index) in paginatedPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50/50 transition cursor-pointer">
+                                    <td class="p-4 text-slate-400 font-mono text-sm">#{{ filteredPosts.length - ((currentPage - 1) * pageSize + index)}}</td>
+                                    <td class="p-4 font-bold text-blue-600 underline underline-offset-4">{{ post.title }}</td>
+                                    <td class="p-4" @click.stop>
+                                        <div class="flex gap-3">
+                                            <button @click="goToForm(post)" class="text-slate-500 hover:text-blue-600 font-medium">編輯</button>
+                                            <button @click="deletePost(post.id)" class="text-red-400 hover:text-red-700 font-medium">刪除</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    </div>
+            </div>
+
+            <div v-else-if="currentMode === 'detail'"> ... </div>
+
+            <div v-else-if="currentMode === 'form'"> ... </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 3. Vue 的核心邏輯
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                // 這裡貼上你之前的 <script setup> 內容
+                const DB_KEY = 'VUE_APP_POSTS';
+                const posts = ref([/* 初始資料 */]);
+                const currentMode = ref('list');
+                const searchQuery = ref('');
+                const currentPage = ref(1);
+                const pageSize = 5;
+                const isEditing = ref(false);
+                const currentPost = ref({ id: null, title: '', body: '' });
+
+                // ... 計算屬性 (filteredPosts, totalPages, paginatedPosts)
+                // ... 功能方法 (goToDetail, goToForm, savePost, deletePost)
+
+                return {
+                    posts, currentMode, searchQuery, currentPage, pageSize,
+                    isEditing, currentPost, filteredPosts, totalPages, paginatedPosts,
+                    goToDetail, goToForm, savePost, deletePost
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
