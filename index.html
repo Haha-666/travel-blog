@@ -10,8 +10,10 @@
 <body class="bg-slate-50 font-sans">
 
     <div id="app">
-        <header class="bg-slate-900 p-6 text-white flex justify-between items-center shadow-lg">
-            <h1 class="text-2xl font-bold tracking-tight">🌍 旅遊部落格</h1>
+        <header class="bg-slate-900 p-6 text-white flex justify-between items-center shadow-lg sticky top-0 z-50">
+            <h1 @click="currentMode = 'list'" class="text-2xl font-bold tracking-tight cursor-pointer hover:text-blue-400 transition">
+                🌍 旅遊部落格
+            </h1>
             
             <div class="flex items-center gap-4">
                 <div v-if="user" class="flex items-center gap-4">
@@ -20,7 +22,7 @@
                         <span class="hidden md:block text-slate-300 text-sm">{{ user.displayName }}</span>
                     </div>
                     
-                    <button v-if="isAdmin" @click="goToForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition shadow-md">
+                    <button @click="goToForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition shadow-md">
                         + 新增文章
                     </button>
                     
@@ -53,13 +55,16 @@
                             <tbody class="divide-y">
                                 <tr v-for="post in filteredPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50/50 cursor-pointer transition">
                                     <td class="p-4 text-slate-400">#{{ post.id }}</td>
-                                    <td class="p-4 font-bold text-blue-600 underline">{{ post.title }}</td>
+                                    <td class="p-4">
+                                        <div class="font-bold text-blue-600 underline">{{ post.title }}</div>
+                                        <div class="text-xs text-slate-400">作者: {{ post.authorName || '匿名' }}</div>
+                                    </td>
                                     <td class="p-4" @click.stop>
-                                        <div v-if="isAdmin" class="flex gap-3">
+                                        <div v-if="canEdit(post)" class="flex gap-3">
                                             <button @click="goToForm(post)" class="text-slate-500 hover:text-blue-600">編輯</button>
                                             <button @click="deletePost(post.id)" class="text-red-400 hover:text-red-600">刪除</button>
                                         </div>
-                                        <span v-else class="text-slate-300 text-xs italic">訪客閱讀</span>
+                                        <span v-else class="text-slate-300 text-xs italic">唯讀模式</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -78,20 +83,17 @@
                     <textarea v-model="currentPost.body" rows="12" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed" placeholder="分享你的旅遊故事..."></textarea>
                     <div class="flex justify-end gap-4 pt-4">
                         <button @click="currentMode = 'list'" class="text-slate-500 px-6 py-2">取消</button>
-                        <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">
-                            發佈文章
-                        </button>
+                        <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">發佈</button>
                     </div>
                 </div>
             </div>
 
             <div v-else-if="currentMode === 'detail'" class="max-w-4xl mx-auto">
-                <button @click="currentMode = 'list'" class="mb-4 text-blue-600 font-semibold flex items-center gap-1">
-                    <span>←</span> 返回清單
-                </button>
+                <button @click="currentMode = 'list'" class="mb-4 text-blue-600 font-semibold flex items-center gap-1">← 返回清單</button>
                 <article class="bg-white shadow-2xl rounded-2xl overflow-hidden border">
                     <header class="bg-slate-900 p-10 text-white">
                         <h1 class="text-4xl font-bold leading-tight">{{ currentPost.title }}</h1>
+                        <div class="mt-4 text-slate-400 text-sm">作者：{{ currentPost.authorName }}</div>
                     </header>
                     <div class="p-10 md:p-16">
                         <p class="text-slate-700 leading-loose text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
@@ -102,11 +104,9 @@
     </div>
 
     <script type="module">
-        // 引入 Firebase 模組
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Firebase 設定資訊
         const firebaseConfig = {
             apiKey: "AIzaSyDHRvhpl6ExX0EL-K6ha2S7X89PtdQkitI",
             authDomain: "my-travel-blog-1af19.firebaseapp.com",
@@ -124,22 +124,25 @@
 
         createApp({
             setup() {
-                // 1. 基本狀態
                 const user = ref(null);
-                const DB_KEY = 'MY_BLOG_POSTS_V1';
-                const posts = ref([{ id: 1, title: "我的第一篇旅遊日誌", body: "歡迎來到我的部落格！這是使用 Vue 與 Firebase 串接開發的個人空間。" }]);
+                const ADMIN_EMAIL = 'pinchun.wang.tw@gmail.com'; // 你的信箱（全站管理權）
+                const DB_KEY = 'TRAVEL_BLOG_V2';
+                
+                const posts = ref([
+                    { id: 1, title: "歡迎來到部落格", body: "這是範例文章", authorId: "system", authorName: "系統管理員" }
+                ]);
                 const currentMode = ref('list');
                 const searchQuery = ref('');
                 const isEditing = ref(false);
-                const currentPost = ref({ id: null, title: '', body: '' });
+                const currentPost = ref({ id: null, title: '', body: '', authorId: '', authorName: '' });
 
-                // 2. ✨ 管理員權限設定
-                const ADMIN_EMAIL = '你的管理員信箱@gmail.com'; // <--- 請填寫你的 Gmail
-                const isAdmin = computed(() => {
-                    return user.value && user.value.email === ADMIN_EMAIL;
-                });
+                // 核心權限判斷：是否可以修改這篇文章
+                const canEdit = (post) => {
+                    if (!user.value) return false;
+                    // 如果你是文章作者，或者是設定的管理員，就能編輯
+                    return post.authorId === user.value.uid || user.value.email === ADMIN_EMAIL;
+                };
 
-                // 3. 生命週期與資料監聽
                 onMounted(() => {
                     onAuthStateChanged(auth, (currentUser) => {
                         user.value = currentUser;
@@ -148,21 +151,14 @@
                     if (saved) posts.value = JSON.parse(saved);
                 });
 
-                watch(posts, (newVal) => {
-                    localStorage.setItem(DB_KEY, JSON.stringify(newVal));
-                }, { deep: true });
+                watch(posts, (newVal) => localStorage.setItem(DB_KEY, JSON.stringify(newVal)), { deep: true });
 
-                // 4. 登入/登出功能
                 const login = async () => {
-                    try {
-                        await signInWithPopup(auth, provider);
-                    } catch (err) {
-                        alert("登入失敗，請確認 Firebase 設定與授權網域！");
-                    }
+                    try { await signInWithPopup(auth, provider); } 
+                    catch (err) { alert("登入失敗！"); }
                 };
                 const logout = () => signOut(auth);
 
-                // 5. 文章管理功能
                 const goToDetail = (post) => {
                     currentPost.value = { ...post };
                     currentMode.value = 'detail';
@@ -170,47 +166,55 @@
                 };
 
                 const goToForm = (post = null) => {
-                    if (!isAdmin.value) return alert("只有站長可以編輯文章！");
+                    if (!user.value) return alert("請先登入！");
                     if (post) {
+                        if (!canEdit(post)) return alert("抱歉，你不是作者，無法編輯此文章。");
                         isEditing.value = true;
                         currentPost.value = { ...post };
                     } else {
                         isEditing.value = false;
-                        currentPost.value = { id: null, title: '', body: '' };
+                        currentPost.value = { id: null, title: '', body: '', authorId: user.value.uid, authorName: user.value.displayName };
                     }
                     currentMode.value = 'form';
                 };
 
                 const savePost = () => {
-                    if (!isAdmin.value) return;
-                    if (!currentPost.value.title.trim()) return alert("請輸入文章標題");
+                    if (!user.value) return;
+                    if (!currentPost.value.title.trim()) return alert("請輸入標題");
                     
                     if (isEditing.value) {
                         const idx = posts.value.findIndex(p => p.id === currentPost.value.id);
-                        posts.value[idx] = { ...currentPost.value };
+                        if (canEdit(posts.value[idx])) {
+                            posts.value[idx] = { ...currentPost.value };
+                        }
                     } else {
-                        const newId = posts.value.length > 0 ? Math.max(...posts.value.map(p => p.id)) + 1 : 1;
-                        posts.value.unshift({ ...currentPost.value, id: newId });
+                        const newId = Date.now(); // 使用時間戳記作為唯一 ID
+                        posts.value.unshift({ 
+                            ...currentPost.value, 
+                            id: newId,
+                            authorId: user.value.uid,
+                            authorName: user.value.displayName
+                        });
                     }
                     currentMode.value = 'list';
                 };
 
                 const deletePost = (id) => {
-                    if (!isAdmin.value) return;
-                    if (confirm('確定要刪除這篇文章嗎？')) {
+                    const post = posts.value.find(p => p.id === id);
+                    if (!canEdit(post)) return alert("權限不足！");
+                    if (confirm('確定刪除？')) {
                         posts.value = posts.value.filter(p => p.id !== id);
                     }
                 };
 
-                // 6. 搜尋過濾
                 const filteredPosts = computed(() => {
                     return posts.value.filter(p => p.title.toLowerCase().includes(searchQuery.value.toLowerCase()));
                 });
 
                 return {
-                    user, isAdmin, login, logout, posts, currentMode, searchQuery,
+                    user, login, logout, posts, currentMode, searchQuery,
                     isEditing, currentPost, goToDetail, goToForm, savePost, deletePost, 
-                    filteredPosts
+                    filteredPosts, canEdit
                 };
             }
         }).mount('#app');
