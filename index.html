@@ -12,18 +12,19 @@
     <div id="app">
         <header class="bg-slate-900 p-6 text-white flex justify-between items-center shadow-lg">
             <h1 class="text-2xl font-bold tracking-tight">🌍 旅遊部落格</h1>
+            
             <div class="flex items-center gap-4">
                 <div v-if="user" class="flex items-center gap-4">
                     <div class="flex items-center gap-3">
                         <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-blue-500 shadow-sm" />
-                        <span class="hidden md:block text-slate-300">{{ user.displayName }}</span>
+                        <span class="hidden md:block text-slate-300 text-sm">{{ user.displayName }}</span>
                     </div>
                     
                     <button v-if="isAdmin" @click="goToForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition shadow-md">
                         + 新增文章
                     </button>
                     
-                    <button @click="logout" class="text-slate-400 hover:text-white text-sm underline">登出</button>
+                    <button @click="logout" class="text-slate-400 hover:text-white text-sm underline ml-2">登出</button>
                 </div>
                 
                 <button v-else @click="login" class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold hover:bg-slate-200 transition">
@@ -32,24 +33,25 @@
             </div>
         </header>
 
-        <div class="min-h-screen p-4 md:p-8">
-            <div v-if="currentMode === 'list'" class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
-                <div class="p-6">
+        <main class="min-h-screen p-4 md:p-8">
+            <div v-if="currentMode === 'list'" class="max-w-5xl mx-auto">
+                <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200 p-6">
                     <div class="mb-6 relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">🔍</span>
-                        <input v-model="searchQuery" type="text" placeholder="搜尋標題..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input v-model="searchQuery" type="text" placeholder="搜尋旅遊心得..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
+
                     <div class="overflow-x-auto border border-slate-100 rounded-lg">
                         <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-slate-50 border-b text-slate-500 text-sm uppercase font-semibold">
+                            <thead class="bg-slate-50 border-b text-slate-500 text-sm uppercase font-semibold">
+                                <tr>
                                     <th class="p-4">編號</th>
                                     <th class="p-4">文章標題</th>
                                     <th class="p-4">操作</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y">
-                                <tr v-for="post in paginatedPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50/50 cursor-pointer transition">
+                                <tr v-for="post in filteredPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50/50 cursor-pointer transition">
                                     <td class="p-4 text-slate-400">#{{ post.id }}</td>
                                     <td class="p-4 font-bold text-blue-600 underline">{{ post.title }}</td>
                                     <td class="p-4" @click.stop>
@@ -57,7 +59,7 @@
                                             <button @click="goToForm(post)" class="text-slate-500 hover:text-blue-600">編輯</button>
                                             <button @click="deletePost(post.id)" class="text-red-400 hover:text-red-600">刪除</button>
                                         </div>
-                                        <span v-else class="text-slate-300 text-xs italic">訪客模式</span>
+                                        <span v-else class="text-slate-300 text-xs italic">訪客閱讀</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -72,17 +74,13 @@
                     <button @click="currentMode = 'list'" class="text-2xl">&times;</button>
                 </div>
                 <div class="p-8 space-y-6">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">文章標題</label>
-                        <input v-model="currentPost.title" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="請輸入標題..." />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">內容敘述</label>
-                        <textarea v-model="currentPost.body" rows="10" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="分享你的旅遊故事..."></textarea>
-                    </div>
-                    <div class="flex justify-end gap-4 border-t pt-6">
+                    <input v-model="currentPost.title" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold" placeholder="文章標題" />
+                    <textarea v-model="currentPost.body" rows="12" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed" placeholder="分享你的旅遊故事..."></textarea>
+                    <div class="flex justify-end gap-4 pt-4">
                         <button @click="currentMode = 'list'" class="text-slate-500 px-6 py-2">取消</button>
-                        <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition">完成發佈</button>
+                        <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">
+                            發佈文章
+                        </button>
                     </div>
                 </div>
             </div>
@@ -92,22 +90,23 @@
                     <span>←</span> 返回清單
                 </button>
                 <article class="bg-white shadow-2xl rounded-2xl overflow-hidden border">
-                    <header class="bg-slate-900 p-8 text-white">
-                        <h1 class="text-3xl font-bold">{{ currentPost.title }}</h1>
+                    <header class="bg-slate-900 p-10 text-white">
+                        <h1 class="text-4xl font-bold leading-tight">{{ currentPost.title }}</h1>
                     </header>
-                    <div class="p-8 md:p-12">
-                        <p class="text-slate-700 leading-relaxed text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
+                    <div class="p-10 md:p-16">
+                        <p class="text-slate-700 leading-loose text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
                     </div>
                 </article>
             </div>
-        </div>
+        </main>
     </div>
 
     <script type="module">
+        // 引入 Firebase 模組
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Firebase 配置
+        // Firebase 設定資訊
         const firebaseConfig = {
             apiKey: "AIzaSyDHRvhpl6ExX0EL-K6ha2S7X89PtdQkitI",
             authDomain: "my-travel-blog-1af19.firebaseapp.com",
@@ -125,23 +124,22 @@
 
         createApp({
             setup() {
+                // 1. 基本狀態
                 const user = ref(null);
-                
-                // --- 重要：這裡填入你的 Gmail ---
-                const ADMIN_EMAIL = 'pinchun.wang.tw@gmail.com'; 
-                
-                // 計算屬性：判斷當前使用者是否有權限
-                const isAdmin = computed(() => {
-                    return user.value && user.value.email === ADMIN_EMAIL;
-                });
-
-                const DB_KEY = 'VUE_APP_POSTS';
-                const posts = ref([{ id: 1, title: "我的旅遊第一站", body: "歡迎來到我的部落格！這是我使用 Vue 3 與 Firebase 打造的旅遊空間。" }]);
+                const DB_KEY = 'MY_BLOG_POSTS_V1';
+                const posts = ref([{ id: 1, title: "我的第一篇旅遊日誌", body: "歡迎來到我的部落格！這是使用 Vue 與 Firebase 串接開發的個人空間。" }]);
                 const currentMode = ref('list');
                 const searchQuery = ref('');
                 const isEditing = ref(false);
                 const currentPost = ref({ id: null, title: '', body: '' });
 
+                // 2. ✨ 管理員權限設定
+                const ADMIN_EMAIL = '你的管理員信箱@gmail.com'; // <--- 請填寫你的 Gmail
+                const isAdmin = computed(() => {
+                    return user.value && user.value.email === ADMIN_EMAIL;
+                });
+
+                // 3. 生命週期與資料監聽
                 onMounted(() => {
                     onAuthStateChanged(auth, (currentUser) => {
                         user.value = currentUser;
@@ -154,26 +152,25 @@
                     localStorage.setItem(DB_KEY, JSON.stringify(newVal));
                 }, { deep: true });
 
+                // 4. 登入/登出功能
                 const login = async () => {
                     try {
                         await signInWithPopup(auth, provider);
                     } catch (err) {
-                        alert("登入失敗，代碼：" + err.code);
+                        alert("登入失敗，請確認 Firebase 設定與授權網域！");
                     }
                 };
-
                 const logout = () => signOut(auth);
 
+                // 5. 文章管理功能
                 const goToDetail = (post) => {
                     currentPost.value = { ...post };
                     currentMode.value = 'detail';
+                    window.scrollTo(0, 0);
                 };
 
                 const goToForm = (post = null) => {
-                    if (!isAdmin.value) {
-                        alert("抱歉，此功能僅限管理員使用！");
-                        return;
-                    }
+                    if (!isAdmin.value) return alert("只有站長可以編輯文章！");
                     if (post) {
                         isEditing.value = true;
                         currentPost.value = { ...post };
@@ -185,8 +182,8 @@
                 };
 
                 const savePost = () => {
-                    if (!isAdmin.value) return; 
-                    if (!currentPost.value.title.trim()) return alert("請輸入標題！");
+                    if (!isAdmin.value) return;
+                    if (!currentPost.value.title.trim()) return alert("請輸入文章標題");
                     
                     if (isEditing.value) {
                         const idx = posts.value.findIndex(p => p.id === currentPost.value.id);
@@ -200,19 +197,20 @@
 
                 const deletePost = (id) => {
                     if (!isAdmin.value) return;
-                    if (confirm('確定要永久刪除這篇文章嗎？')) {
+                    if (confirm('確定要刪除這篇文章嗎？')) {
                         posts.value = posts.value.filter(p => p.id !== id);
                     }
                 };
 
-                const paginatedPosts = computed(() => {
+                // 6. 搜尋過濾
+                const filteredPosts = computed(() => {
                     return posts.value.filter(p => p.title.toLowerCase().includes(searchQuery.value.toLowerCase()));
                 });
 
                 return {
                     user, isAdmin, login, logout, posts, currentMode, searchQuery,
                     isEditing, currentPost, goToDetail, goToForm, savePost, deletePost, 
-                    paginatedPosts
+                    filteredPosts
                 };
             }
         }).mount('#app');
