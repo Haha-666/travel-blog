@@ -17,15 +17,18 @@
             
             <div class="flex items-center gap-4">
                 <div v-if="user" class="flex items-center gap-4">
-                    <div class="flex items-center gap-3">
+                    <div @click="currentMode = 'profile'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition border-r border-slate-700 pr-4">
                         <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-blue-500 shadow-sm" />
-                        <span class="hidden md:block text-slate-300 text-sm">{{ user.displayName }}</span>
+                        <span class="hidden md:block text-slate-300 text-sm font-medium">{{ user.displayName }}</span>
                     </div>
+                    
                     <button @click="goToForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition shadow-md">
-                        + 新增文章
+                        + new post
                     </button>
-                    <button @click="logout" class="text-slate-400 hover:text-white text-sm underline ml-2">登出</button>
+                    
+                    <button @click="logout" class="text-slate-400 hover:text-white text-sm underline">登出</button>
                 </div>
+                
                 <button v-else @click="login" class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold hover:bg-slate-200 transition">
                     Google 登入
                 </button>
@@ -37,21 +40,21 @@
                 <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200 p-6">
                     <div class="mb-6 relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">🔍</span>
-                        <input v-model="searchQuery" type="text" placeholder="搜尋旅遊心得..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input v-model="searchQuery" type="text" placeholder="搜尋..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
 
                     <div class="overflow-x-auto border border-slate-100 rounded-lg">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 border-b text-slate-500 text-sm uppercase font-semibold">
                                 <tr>
-                                    <th class="p-4">最後更新</th>
                                     <th class="p-4">文章標題</th>
+                                    <th class="p-4">更新日期</th>
                                     <th class="p-4">操作</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y">
                                 <tr v-for="post in filteredPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50/50 cursor-pointer transition">
-                                    <td class="p-4 text-slate-400 text-sm">{{ post.updatedAt }}</td>
+                                    <td class="p-4 text-slate-400 text-sm whitespace-nowrap">{{ post.updatedAt }}</td>
                                     <td class="p-4">
                                         <div class="font-bold text-blue-600 underline">{{ post.title }}</div>
                                         <div class="text-xs text-slate-400">作者: {{ post.authorName }}</div>
@@ -61,7 +64,7 @@
                                             <button @click="goToForm(post)" class="text-slate-500 hover:text-blue-600">編輯</button>
                                             <button @click="deletePost(post.id)" class="text-red-400 hover:text-red-600">刪除</button>
                                         </div>
-                                        <span v-else class="text-slate-300 text-xs italic">唯讀模式</span>
+                                        <span v-else class="text-slate-300 text-xs italic">閱覽</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -70,9 +73,39 @@
                 </div>
             </div>
 
+            <div v-else-if="currentMode === 'profile'" class="max-w-2xl mx-auto">
+                <button @click="currentMode = 'list'" class="mb-4 text-blue-600 font-semibold flex items-center gap-1">← 返回清單</button>
+                <div class="bg-white shadow-2xl rounded-3xl overflow-hidden border">
+                    <div class="bg-slate-900 h-32"></div>
+                    <div class="px-8 pb-10">
+                        <div class="relative -mt-16 mb-6">
+                            <img :src="user.photoURL" class="w-32 h-32 rounded-full border-4 border-white shadow-lg mx-auto" />
+                        </div>
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-slate-800">{{ user.displayName }}</h2>
+                            <p class="text-slate-500">{{ user.email }}</p>
+                            <div class="inline-block mt-4 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest"
+                                 :class="user.email === 'pinchun.wang.tw@gmail.com' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
+                                {{ user.email === 'pinchun.wang.tw@gmail.com' ? '站長權限' : '部落客' }}
+                            </div>
+                        </div>
+                        <div class="mt-10 border-t pt-8 grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <div class="text-2xl font-bold text-slate-800">{{ myPostsCount }}</div>
+                                <div class="text-sm text-slate-400">我的文章</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-slate-800">{{ lastActivityDate }}</div>
+                                <div class="text-sm text-slate-400">最後活動</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div v-else-if="currentMode === 'form'" class="max-w-3xl mx-auto bg-white shadow-2xl rounded-2xl border">
                 <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
-                    <h2 class="text-xl font-bold">{{ isEditing ? '📝 編輯文章' : '✨ 撰寫新文章' }}</h2>
+                    <h2 class="text-xl font-bold">{{ isEditing ? '📝 編輯文章' : '✨ NEW POST' }}</h2>
                     <button @click="currentMode = 'list'" class="text-2xl">&times;</button>
                 </div>
                 <div class="p-8 space-y-6">
@@ -80,7 +113,7 @@
                     <textarea v-model="currentPost.body" rows="12" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed" placeholder="分享你的旅遊故事..."></textarea>
                     <div class="flex justify-end gap-4 pt-4">
                         <button @click="currentMode = 'list'" class="text-slate-500 px-6 py-2">取消</button>
-                        <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">發佈</button>
+                        <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition">完成發佈</button>
                     </div>
                 </div>
             </div>
@@ -90,7 +123,10 @@
                 <article class="bg-white shadow-2xl rounded-2xl overflow-hidden border">
                     <header class="bg-slate-900 p-10 text-white">
                         <h1 class="text-4xl font-bold leading-tight">{{ currentPost.title }}</h1>
-                        <div class="mt-4 text-slate-400 text-sm">作者：{{ currentPost.authorName }} | 更新於：{{ currentPost.updatedAt }}</div>
+                        <div class="mt-4 text-slate-400 text-sm flex gap-4">
+                            <span>作者：{{ currentPost.authorName }}</span>
+                            <span>更新：{{ currentPost.updatedAt }}</span>
+                        </div>
                     </header>
                     <div class="p-10 md:p-16">
                         <p class="text-slate-700 leading-loose text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
@@ -123,10 +159,10 @@
             setup() {
                 const user = ref(null);
                 const ADMIN_EMAIL = 'pinchun.wang.tw@gmail.com'; 
-                const DB_KEY = 'TRAVEL_BLOG_V3';
+                const DB_KEY = 'TRAVEL_BLOG_V4';
                 
                 const posts = ref([
-                    { id: 1, title: "歡迎來到部落格", body: "這是範例文章", authorId: "system", authorName: "管理員", updatedAt: "2026/4/20 下午7:00" }
+                    { id: 1, title: "部落格正式開站", body: "歡迎來到我的旅遊空間", authorId: "system", authorName: "管理員", updatedAt: "2026/4/20" }
                 ]);
                 const currentMode = ref('list');
                 const searchQuery = ref('');
@@ -137,6 +173,16 @@
                     if (!user.value) return false;
                     return post.authorId === user.value.uid || user.value.email === ADMIN_EMAIL;
                 };
+
+                // 個人統計資料
+                const myPostsCount = computed(() => {
+                    return user.value ? posts.value.filter(p => p.authorId === user.value.uid).length : 0;
+                });
+                
+                const lastActivityDate = computed(() => {
+                    const myPosts = posts.value.filter(p => p.authorId === user.value?.uid);
+                    return myPosts.length > 0 ? myPosts[0].updatedAt.split(' ')[0] : '無活動';
+                });
 
                 onMounted(() => {
                     onAuthStateChanged(auth, (currentUser) => {
@@ -149,10 +195,12 @@
                 watch(posts, (newVal) => localStorage.setItem(DB_KEY, JSON.stringify(newVal)), { deep: true });
 
                 const login = async () => {
-                    try { await signInWithPopup(auth, provider); } 
-                    catch (err) { alert("登入失敗！"); }
+                    try { await signInWithPopup(auth, provider); } catch (err) { alert("登入失敗！"); }
                 };
-                const logout = () => signOut(auth);
+                const logout = () => {
+                    signOut(auth);
+                    currentMode.value = 'list';
+                };
 
                 const goToDetail = (post) => {
                     currentPost.value = { ...post };
@@ -176,44 +224,7 @@
                 const savePost = () => {
                     if (!user.value) return;
                     if (!currentPost.value.title.trim()) return alert("請輸入標題");
-                    
-                    // 取得目前時間字串
                     const now = new Date().toLocaleString('zh-TW', { hour12: false });
 
                     if (isEditing.value) {
-                        const idx = posts.value.findIndex(p => p.id === currentPost.value.id);
-                        if (canEdit(posts.value[idx])) {
-                            posts.value[idx] = { ...currentPost.value, updatedAt: now };
-                        }
-                    } else {
-                        posts.value.unshift({ 
-                            ...currentPost.value, 
-                            id: Date.now(),
-                            authorId: user.value.uid,
-                            authorName: user.value.displayName,
-                            updatedAt: now // 新增時存入時間
-                        });
-                    }
-                    currentMode.value = 'list';
-                };
-
-                const deletePost = (id) => {
-                    const post = posts.value.find(p => p.id === id);
-                    if (!canEdit(post)) return alert("權限不足！");
-                    if (confirm('確定刪除？')) posts.value = posts.value.filter(p => p.id !== id);
-                };
-
-                const filteredPosts = computed(() => {
-                    return posts.value.filter(p => p.title.toLowerCase().includes(searchQuery.value.toLowerCase()));
-                });
-
-                return {
-                    user, login, logout, posts, currentMode, searchQuery,
-                    isEditing, currentPost, goToDetail, goToForm, savePost, deletePost, 
-                    filteredPosts, canEdit
-                };
-            }
-        }).mount('#app');
-    </script>
-</body>
-</html>
+                        const
