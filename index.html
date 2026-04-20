@@ -21,14 +21,11 @@
                         <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-blue-500 shadow-sm" />
                         <span class="hidden md:block text-slate-300 text-sm">{{ user.displayName }}</span>
                     </div>
-                    
                     <button @click="goToForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition shadow-md">
-                        + new post
+                        + 新增文章
                     </button>
-                    
                     <button @click="logout" class="text-slate-400 hover:text-white text-sm underline ml-2">登出</button>
                 </div>
-                
                 <button v-else @click="login" class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold hover:bg-slate-200 transition">
                     Google 登入
                 </button>
@@ -40,25 +37,24 @@
                 <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200 p-6">
                     <div class="mb-6 relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">🔍</span>
-                        <input v-model="searchQuery" type="text" placeholder="搜尋..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input v-model="searchQuery" type="text" placeholder="搜尋旅遊心得..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
 
                     <div class="overflow-x-auto border border-slate-100 rounded-lg">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 border-b text-slate-500 text-sm uppercase font-semibold">
                                 <tr>
-                           
+                                    <th class="p-4">最後更新</th>
                                     <th class="p-4">文章標題</th>
                                     <th class="p-4">操作</th>
-                                    <th class="p-4">日期</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y">
                                 <tr v-for="post in filteredPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50/50 cursor-pointer transition">
-                                    <td class="p-4 text-slate-400">#{{ post.id }}</td>
+                                    <td class="p-4 text-slate-400 text-sm">{{ post.updatedAt }}</td>
                                     <td class="p-4">
                                         <div class="font-bold text-blue-600 underline">{{ post.title }}</div>
-                                        <div class="text-xs text-slate-400">作者: {{ post.authorName || '匿名' }}</div>
+                                        <div class="text-xs text-slate-400">作者: {{ post.authorName }}</div>
                                     </td>
                                     <td class="p-4" @click.stop>
                                         <div v-if="canEdit(post)" class="flex gap-3">
@@ -94,7 +90,7 @@
                 <article class="bg-white shadow-2xl rounded-2xl overflow-hidden border">
                     <header class="bg-slate-900 p-10 text-white">
                         <h1 class="text-4xl font-bold leading-tight">{{ currentPost.title }}</h1>
-                        <div class="mt-4 text-slate-400 text-sm">作者：{{ currentPost.authorName }}</div>
+                        <div class="mt-4 text-slate-400 text-sm">作者：{{ currentPost.authorName }} | 更新於：{{ currentPost.updatedAt }}</div>
                     </header>
                     <div class="p-10 md:p-16">
                         <p class="text-slate-700 leading-loose text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
@@ -126,21 +122,19 @@
         createApp({
             setup() {
                 const user = ref(null);
-                const ADMIN_EMAIL = 'pinchun.wang.tw@gmail.com'; // 你的信箱（全站管理權）
-                const DB_KEY = 'TRAVEL_BLOG_V2';
+                const ADMIN_EMAIL = 'pinchun.wang.tw@gmail.com'; 
+                const DB_KEY = 'TRAVEL_BLOG_V3';
                 
                 const posts = ref([
-                    { id: 1, title: "歡迎來到部落格", body: "這是範例文章", authorId: "system", authorName: "系統管理員" }
+                    { id: 1, title: "歡迎來到部落格", body: "這是範例文章", authorId: "system", authorName: "管理員", updatedAt: "2026/4/20 下午7:00" }
                 ]);
                 const currentMode = ref('list');
                 const searchQuery = ref('');
                 const isEditing = ref(false);
-                const currentPost = ref({ id: null, title: '', body: '', authorId: '', authorName: '' });
+                const currentPost = ref({ id: null, title: '', body: '', authorId: '', authorName: '', updatedAt: '' });
 
-                // 核心權限判斷：是否可以修改這篇文章
                 const canEdit = (post) => {
                     if (!user.value) return false;
-                    // 如果你是文章作者，或者是設定的管理員，就能編輯
                     return post.authorId === user.value.uid || user.value.email === ADMIN_EMAIL;
                 };
 
@@ -169,12 +163,12 @@
                 const goToForm = (post = null) => {
                     if (!user.value) return alert("請先登入！");
                     if (post) {
-                        if (!canEdit(post)) return alert("抱歉，你不是作者，無法編輯此文章。");
+                        if (!canEdit(post)) return alert("權限不足！");
                         isEditing.value = true;
                         currentPost.value = { ...post };
                     } else {
                         isEditing.value = false;
-                        currentPost.value = { id: null, title: '', body: '', authorId: user.value.uid, authorName: user.value.displayName };
+                        currentPost.value = { id: null, title: '', body: '', authorId: user.value.uid, authorName: user.value.displayName, updatedAt: '' };
                     }
                     currentMode.value = 'form';
                 };
@@ -183,18 +177,21 @@
                     if (!user.value) return;
                     if (!currentPost.value.title.trim()) return alert("請輸入標題");
                     
+                    // 取得目前時間字串
+                    const now = new Date().toLocaleString('zh-TW', { hour12: false });
+
                     if (isEditing.value) {
                         const idx = posts.value.findIndex(p => p.id === currentPost.value.id);
                         if (canEdit(posts.value[idx])) {
-                            posts.value[idx] = { ...currentPost.value };
+                            posts.value[idx] = { ...currentPost.value, updatedAt: now };
                         }
                     } else {
-                        const newId = Date.now(); // 使用時間戳記作為唯一 ID
                         posts.value.unshift({ 
                             ...currentPost.value, 
-                            id: newId,
+                            id: Date.now(),
                             authorId: user.value.uid,
-                            authorName: user.value.displayName
+                            authorName: user.value.displayName,
+                            updatedAt: now // 新增時存入時間
                         });
                     }
                     currentMode.value = 'list';
@@ -203,9 +200,7 @@
                 const deletePost = (id) => {
                     const post = posts.value.find(p => p.id === id);
                     if (!canEdit(post)) return alert("權限不足！");
-                    if (confirm('確定刪除？')) {
-                        posts.value = posts.value.filter(p => p.id !== id);
-                    }
+                    if (confirm('確定刪除？')) posts.value = posts.value.filter(p => p.id !== id);
                 };
 
                 const filteredPosts = computed(() => {
