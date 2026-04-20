@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
-<body class="bg-slate-50 font-sans">
+<body class="bg-slate-50 font-sans text-slate-900">
 
     <div id="app">
         <header class="bg-slate-900 p-6 text-white flex justify-between items-center shadow-lg sticky top-0 z-50">
@@ -35,7 +35,7 @@
                     </div>
                     <div class="overflow-x-auto border border-slate-100 rounded-lg">
                         <table class="w-full text-left">
-                            <thead class="bg-slate-50 border-b text-slate-500 text-sm uppercase font-semibold">
+                            <thead class="bg-slate-50 border-b text-slate-500 text-sm font-semibold">
                                 <tr>
                                     <th class="p-4">文章標題</th>
                                     <th class="p-4">最後更新</th>
@@ -48,7 +48,7 @@
                                         <div class="font-bold text-blue-600 underline">{{ post.title }}</div>
                                         <div class="text-xs text-slate-400">作者: {{ post.authorName }}</div>
                                     </td>
-                                    <td class="p-4 text-slate-400 text-sm">{{ post.updatedAt }}</td>
+                                    <td class="p-4 text-slate-400 text-sm whitespace-nowrap">{{ post.updatedAt }}</td>
                                     <td class="p-4" @click.stop>
                                         <div v-if="canEdit(post)" class="flex gap-3">
                                             <button @click="goToForm(post)" class="text-slate-500 hover:text-blue-600 text-sm font-semibold">編輯</button>
@@ -64,7 +64,6 @@
 
             <div v-else-if="currentMode === 'profile'" class="max-w-4xl mx-auto space-y-8">
                 <button @click="currentMode = 'list'" class="text-blue-600 font-semibold flex items-center gap-1">← 返回清單</button>
-                
                 <div class="bg-white shadow-xl rounded-2xl p-8 border">
                     <h2 class="text-xl font-bold mb-6 text-slate-800 border-b pb-2">個人帳號設定</h2>
                     <div class="flex flex-col md:flex-row gap-4 items-end">
@@ -74,23 +73,17 @@
                         </div>
                         <button @click="saveProfile" class="bg-slate-800 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-700 transition">儲存姓名</button>
                     </div>
-                    <p class="text-xs text-slate-400 mt-4">註冊信箱：{{ user.email }}</p>
                 </div>
 
                 <div class="bg-white shadow-xl rounded-2xl p-8 border">
                     <h2 class="text-xl font-bold mb-6 text-slate-800 border-b pb-2">我發布的文章 ({{ myPosts.length }})</h2>
-                    <div v-if="myPosts.length === 0" class="text-center py-10 text-slate-400">
-                        目前還沒有發布過文章喔！
-                    </div>
+                    <div v-if="myPosts.length === 0" class="text-center py-10 text-slate-400">尚未發布文章。</div>
                     <div v-else class="space-y-4">
-                        <div v-for="post in myPosts" :key="post.id" class="flex justify-between items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition border border-slate-100">
-                            <div>
-                                <h3 class="font-bold text-slate-700">{{ post.title }}</h3>
-                                <p class="text-xs text-slate-400">更新日期：{{ post.updatedAt }}</p>
-                            </div>
+                        <div v-for="post in myPosts" :key="post.id" class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border">
+                            <h3 class="font-bold text-slate-700">{{ post.title }}</h3>
                             <div class="flex gap-4">
-                                <button @click="goToForm(post)" class="text-blue-600 hover:underline font-medium">編輯</button>
-                                <button @click="deletePost(post.id)" class="text-red-500 hover:underline font-medium">刪除</button>
+                                <button @click="goToForm(post)" class="text-blue-600 hover:underline">編輯</button>
+                                <button @click="deletePost(post.id)" class="text-red-500 hover:underline">刪除</button>
                             </div>
                         </div>
                     </div>
@@ -98,4 +91,34 @@
             </div>
 
             <div v-else-if="currentMode === 'form'" class="max-w-3xl mx-auto bg-white shadow-2xl rounded-2xl border">
-                <div class="p-6 bg-slate-900 text-white flex justify-between items
+                <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
+                    <h2 class="text-xl font-bold">{{ isEditing ? '📝 編輯文章' : '✨ 撰寫新文章' }}</h2>
+                    <button @click="currentMode = 'list'" class="text-2xl">&times;</button>
+                </div>
+                <div class="p-8 space-y-6">
+                    <input v-model="currentPost.title" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold" placeholder="文章標題" />
+                    <textarea v-model="currentPost.body" rows="12" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed" placeholder="內容..."></textarea>
+                    <div class="flex justify-end gap-4 pt-4">
+                        <button @click="currentMode = 'list'" class="text-slate-500 px-6 py-2">取消</button>
+                        <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">發佈</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-else-if="currentMode === 'detail'" class="max-w-4xl mx-auto space-y-8">
+                <button @click="currentMode = 'list'" class="text-blue-600 font-semibold flex items-center gap-1">← 返回清單</button>
+                <article class="bg-white shadow-2xl rounded-2xl overflow-hidden border">
+                    <header class="bg-slate-900 p-10 text-white">
+                        <h1 class="text-4xl font-bold leading-tight">{{ currentPost.title }}</h1>
+                        <div class="mt-4 text-slate-400 text-sm">作者：{{ currentPost.authorName }} | {{ currentPost.updatedAt }}</div>
+                    </header>
+                    <div class="p-10 md:p-16 border-b">
+                        <p class="text-slate-700 leading-loose text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
+                    </div>
+
+                    <div class="p-8 md:p-16 bg-slate-50">
+                        <h3 class="text-xl font-bold mb-8">💬 留言互動 ({{ currentPost.comments?.length || 0 }})</h3>
+                        
+                        <div v-if="user" class="mb-10 space-y-3">
+                            <textarea v-model="newComment" placeholder="我有問題要問作者..." rows="3" class="w-full border rounded-xl p-4 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"></textarea>
+                            <div
