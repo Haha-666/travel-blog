@@ -18,20 +18,13 @@
             <div class="flex items-center gap-4">
                 <div v-if="user" class="flex items-center gap-4">
                     <div @click="currentMode = 'profile'" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition border-r border-slate-700 pr-4">
-                        <img :src="user.photoURL" class="w-10 h-10 rounded-full border-2 border-blue-500 shadow-sm" />
-                        <span class="hidden md:block text-slate-300 text-sm font-medium">{{ user.displayName }}</span>
+                        <img :src="customProfile.photoURL || user.photoURL" class="w-10 h-10 rounded-full border-2 border-blue-500 shadow-sm object-cover" />
+                        <span class="hidden md:block text-slate-300 text-sm font-medium">{{ customProfile.displayName || user.displayName }}</span>
                     </div>
-                    
-                    <button @click="goToForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition shadow-md">
-                        + 新增文章
-                    </button>
-                    
+                    <button @click="goToForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-500 transition shadow-md">+ 新增文章</button>
                     <button @click="logout" class="text-slate-400 hover:text-white text-sm underline">登出</button>
                 </div>
-                
-                <button v-else @click="login" class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold hover:bg-slate-200 transition">
-                    Google 登入
-                </button>
+                <button v-else @click="login" class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold hover:bg-slate-200 transition">Google 登入</button>
             </div>
         </header>
 
@@ -40,31 +33,31 @@
                 <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200 p-6">
                     <div class="mb-6 relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">🔍</span>
-                        <input v-model="searchQuery" type="text" placeholder="搜尋旅遊心得..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input v-model="searchQuery" type="text" placeholder="搜尋標題..." class="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
 
                     <div class="overflow-x-auto border border-slate-100 rounded-lg">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 border-b text-slate-500 text-sm uppercase font-semibold">
                                 <tr>
-                                    <th class="p-4">最後更新</th>
                                     <th class="p-4">文章標題</th>
+                                    <th class="p-4">最後更新</th>
                                     <th class="p-4">操作</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y">
                                 <tr v-for="post in filteredPosts" :key="post.id" @click="goToDetail(post)" class="hover:bg-blue-50/50 cursor-pointer transition">
-                                    <td class="p-4 text-slate-400 text-sm whitespace-nowrap">{{ post.updatedAt }}</td>
                                     <td class="p-4">
                                         <div class="font-bold text-blue-600 underline">{{ post.title }}</div>
                                         <div class="text-xs text-slate-400">作者: {{ post.authorName }}</div>
                                     </td>
+                                    <td class="p-4 text-slate-400 text-sm whitespace-nowrap">{{ post.updatedAt }}</td>
                                     <td class="p-4" @click.stop>
                                         <div v-if="canEdit(post)" class="flex gap-3">
-                                            <button @click="goToForm(post)" class="text-slate-500 hover:text-blue-600">編輯</button>
-                                            <button @click="deletePost(post.id)" class="text-red-400 hover:text-red-600">刪除</button>
+                                            <button @click="goToForm(post)" class="text-slate-500 hover:text-blue-600 text-sm">編輯</button>
+                                            <button @click="deletePost(post.id)" class="text-red-400 hover:text-red-600 text-sm">刪除</button>
                                         </div>
-                                        <span v-else class="text-slate-300 text-xs italic">唯讀模式</span>
+                                        <span v-else class="text-slate-200 text-xs italic">唯讀</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -78,25 +71,21 @@
                 <div class="bg-white shadow-2xl rounded-3xl overflow-hidden border">
                     <div class="bg-slate-900 h-32"></div>
                     <div class="px-8 pb-10">
-                        <div class="relative -mt-16 mb-6">
-                            <img :src="user.photoURL" class="w-32 h-32 rounded-full border-4 border-white shadow-lg mx-auto" />
+                        <div class="relative -mt-16 mb-6 text-center">
+                            <img :src="tempProfile.photoURL || user.photoURL" class="w-32 h-32 rounded-full border-4 border-white shadow-lg mx-auto object-cover" />
                         </div>
-                        <div class="text-center space-y-2">
-                            <h2 class="text-2xl font-bold text-slate-800">{{ user.displayName }}</h2>
-                            <p class="text-slate-500">{{ user.email }}</p>
-                            <div class="inline-block mt-4 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest"
-                                 :class="user.email === 'pinchun.wang.tw@gmail.com' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
-                                {{ user.email === 'pinchun.wang.tw@gmail.com' ? '站長權限' : '部落客' }}
-                            </div>
-                        </div>
-                        <div class="mt-10 border-t pt-8 grid grid-cols-2 gap-4 text-center">
+                        <div class="space-y-6">
                             <div>
-                                <div class="text-2xl font-bold text-slate-800">{{ myPostsCount }}</div>
-                                <div class="text-sm text-slate-400">我的文章</div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">自訂姓名</label>
+                                <input v-model="tempProfile.displayName" class="w-full border-b-2 border-slate-100 py-2 text-xl font-bold focus:border-blue-500 outline-none transition" />
                             </div>
                             <div>
-                                <div class="text-2xl font-bold text-slate-800">{{ lastActivityDate }}</div>
-                                <div class="text-sm text-slate-400">最後活動</div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">頭像圖片網址</label>
+                                <input v-model="tempProfile.photoURL" class="w-full border-b-2 border-slate-100 py-2 text-sm text-blue-500 focus:border-blue-500 outline-none transition" placeholder="https://..." />
+                            </div>
+                            <div class="pt-6 border-t flex flex-col gap-3">
+                                <button @click="saveProfile" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg transition">儲存個人設定</button>
+                                <p class="text-center text-xs text-slate-400">信箱：{{ user.email }}</p>
                             </div>
                         </div>
                     </div>
@@ -110,7 +99,7 @@
                 </div>
                 <div class="p-8 space-y-6">
                     <input v-model="currentPost.title" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold" placeholder="文章標題" />
-                    <textarea v-model="currentPost.body" rows="12" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed" placeholder="分享你的旅遊故事..."></textarea>
+                    <textarea v-model="currentPost.body" rows="12" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed" placeholder="內容..."></textarea>
                     <div class="flex justify-end gap-4 pt-4">
                         <button @click="currentMode = 'list'" class="text-slate-500 px-6 py-2">取消</button>
                         <button @click="savePost" class="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 transition">完成發佈</button>
@@ -123,10 +112,7 @@
                 <article class="bg-white shadow-2xl rounded-2xl overflow-hidden border">
                     <header class="bg-slate-900 p-10 text-white">
                         <h1 class="text-4xl font-bold leading-tight">{{ currentPost.title }}</h1>
-                        <div class="mt-4 text-slate-400 text-sm flex gap-4">
-                            <span>作者：{{ currentPost.authorName }}</span>
-                            <span>更新：{{ currentPost.updatedAt }}</span>
-                        </div>
+                        <div class="mt-4 text-slate-400 text-sm">作者：{{ currentPost.authorName }} | 更新：{{ currentPost.updatedAt }}</div>
                     </header>
                     <div class="p-10 md:p-16">
                         <p class="text-slate-700 leading-loose text-lg whitespace-pre-wrap">{{ currentPost.body }}</p>
@@ -159,48 +145,52 @@
             setup() {
                 const user = ref(null);
                 const ADMIN_EMAIL = 'pinchun.wang.tw@gmail.com'; 
-                const DB_KEY = 'TRAVEL_BLOG_V4';
+                const POST_DB = 'TRAVEL_POSTS_V6';
+                const PROF_DB = 'TRAVEL_PROFILE_V6';
                 
-                const posts = ref([
-                    { id: 1, title: "部落格正式開站", body: "歡迎來到我的旅遊空間", authorId: "system", authorName: "管理員", updatedAt: "2026/4/20" }
-                ]);
+                const posts = ref([]);
                 const currentMode = ref('list');
                 const searchQuery = ref('');
                 const isEditing = ref(false);
                 const currentPost = ref({ id: null, title: '', body: '', authorId: '', authorName: '', updatedAt: '' });
+                const customProfile = ref({ displayName: '', photoURL: '' });
+                const tempProfile = ref({ displayName: '', photoURL: '' });
 
                 const canEdit = (post) => {
                     if (!user.value) return false;
                     return post.authorId === user.value.uid || user.value.email === ADMIN_EMAIL;
                 };
 
-                // 個人統計資料
-                const myPostsCount = computed(() => {
-                    return user.value ? posts.value.filter(p => p.authorId === user.value.uid).length : 0;
-                });
-                
-                const lastActivityDate = computed(() => {
-                    const myPosts = posts.value.filter(p => p.authorId === user.value?.uid);
-                    return myPosts.length > 0 ? myPosts[0].updatedAt.split(' ')[0] : '無活動';
-                });
-
                 onMounted(() => {
                     onAuthStateChanged(auth, (currentUser) => {
                         user.value = currentUser;
+                        if (currentUser) {
+                            const savedProf = localStorage.getItem(`${PROF_DB}_${currentUser.uid}`);
+                            if (savedProf) {
+                                customProfile.value = JSON.parse(savedProf);
+                            } else {
+                                customProfile.value = { displayName: currentUser.displayName, photoURL: currentUser.photoURL };
+                            }
+                            tempProfile.value = { ...customProfile.value };
+                        }
                     });
-                    const saved = localStorage.getItem(DB_KEY);
-                    if (saved) posts.value = JSON.parse(saved);
+                    const savedPosts = localStorage.getItem(POST_DB);
+                    if (savedPosts) posts.value = JSON.parse(savedPosts);
                 });
 
-                watch(posts, (newVal) => localStorage.setItem(DB_KEY, JSON.stringify(newVal)), { deep: true });
+                watch(posts, (newVal) => localStorage.setItem(POST_DB, JSON.stringify(newVal)), { deep: true });
+
+                const saveProfile = () => {
+                    customProfile.value = { ...tempProfile.value };
+                    localStorage.setItem(`${PROF_DB}_${user.value.uid}`, JSON.stringify(customProfile.value));
+                    alert("設定已儲存！");
+                    currentMode.value = 'list';
+                };
 
                 const login = async () => {
                     try { await signInWithPopup(auth, provider); } catch (err) { alert("登入失敗！"); }
                 };
-                const logout = () => {
-                    signOut(auth);
-                    currentMode.value = 'list';
-                };
+                const logout = () => { signOut(auth); currentMode.value = 'list'; };
 
                 const goToDetail = (post) => {
                     currentPost.value = { ...post };
@@ -216,30 +206,30 @@
                         currentPost.value = { ...post };
                     } else {
                         isEditing.value = false;
-                        currentPost.value = { id: null, title: '', body: '', authorId: user.value.uid, authorName: user.value.displayName, updatedAt: '' };
+                        currentPost.value = { 
+                            id: null, title: '', body: '', 
+                            authorId: user.value.uid, 
+                            authorName: customProfile.value.displayName || user.value.displayName 
+                        };
                     }
                     currentMode.value = 'form';
                 };
 
                 const savePost = () => {
                     if (!user.value) return;
-                    if (!currentPost.value.title.trim()) return alert("請輸入標題");
                     const now = new Date().toLocaleString('zh-TW', { hour12: false });
+                    const name = customProfile.value.displayName || user.value.displayName;
 
                     if (isEditing.value) {
                         const idx = posts.value.findIndex(p => p.id === currentPost.value.id);
-                        if (canEdit(posts.value[idx])) {
-                            posts.value[idx] = { ...currentPost.value, updatedAt: now };
-                        }
+                        posts.value[idx] = { ...currentPost.value, authorName: name, updatedAt: now };
                     } else {
-                        posts.value.unshift({ ...currentPost.value, id: Date.now(), authorId: user.value.uid, authorName: user.value.displayName, updatedAt: now });
+                        posts.value.unshift({ ...currentPost.value, id: Date.now(), authorName: name, updatedAt: now });
                     }
                     currentMode.value = 'list';
                 };
 
                 const deletePost = (id) => {
-                    const post = posts.value.find(p => p.id === id);
-                    if (!canEdit(post)) return alert("權限不足！");
                     if (confirm('確定刪除？')) posts.value = posts.value.filter(p => p.id !== id);
                 };
 
@@ -250,7 +240,7 @@
                 return {
                     user, login, logout, posts, currentMode, searchQuery, isEditing, currentPost, 
                     goToDetail, goToForm, savePost, deletePost, filteredPosts, canEdit,
-                    myPostsCount, lastActivityDate
+                    customProfile, tempProfile, saveProfile
                 };
             }
         }).mount('#app');
