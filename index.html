@@ -142,12 +142,14 @@
                 watch(posts, (newVal) => localStorage.setItem(DB_KEY, JSON.stringify(newVal)), { deep: true });
 
                 const login = async () => {
-                    try {
-                        await signInWithPopup(auth, provider);
-                    } catch (err) {
-                        console.error("登入出錯:", err);
-                        alert("登入失敗！");
-                    }
+                try {
+                    await signInWithPopup(auth, provider);
+                    } 
+                catch (err) {
+                // 直接彈出錯誤代碼，方便診斷
+                            alert("錯誤類型：" + err.code); 
+                            console.error("詳細錯誤內容：", err);
+                            }
                 };
 
                 const logout = () => signOut(auth);
